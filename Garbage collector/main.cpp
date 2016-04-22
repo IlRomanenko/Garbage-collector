@@ -2,6 +2,15 @@
 #include "SmartObject.h"
 #include "GarbageCollector.h"
 
+//Debug version
+#define FullNew
+
+#ifdef FullNew
+#define new new(__LINE__, __FILE__)
+#else
+#define new new(__LINE__, "")
+#endif
+
 class A : public SmartObject
 {
     int x;
@@ -43,15 +52,19 @@ public:
 
 int main()
 {
+
     {
         A a, b(2);
     }
-    A *a = new A[1];
-    delete []a;
-     
+    A *a = new A[1], *c = new A();
+    
+    delete [] a;
+    
+    delete c;
+
     B *b = new B[1];
     b->Print();
-    delete []b;
+    //delete[] b;
 
     cout << "B = " << sizeof(B) << endl;
     cout << "A = " << sizeof(A) << endl;

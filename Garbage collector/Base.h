@@ -12,6 +12,8 @@
 
 using namespace std;
 
+
+
 #ifdef _DEBUG
 
     ofstream LOG(stderr);

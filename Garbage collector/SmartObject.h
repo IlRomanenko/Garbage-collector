@@ -6,41 +6,43 @@
 class SmartObject
 {
 private:
-    
+    bool is_stack_object;
 public:
     SmartObject() 
     {
-        GarbageCollector::Instance()->AddStackObject(this);
+        is_stack_object = GarbageCollector::Instance()->AddStackObject(this);
     }
  
-    void* operator new(size_t n)
+    static void* operator new(size_t n, size_t line, const char* file)
     {
-        return GarbageCollector::Instance()->Allocate(n);
+        return GarbageCollector::Instance()->Allocate(n, line, file);
     }
 
-    void* operator new[](size_t n)
+    static void* operator new[](size_t n, size_t line, const char* file)
     {
-        return GarbageCollector::Instance()->Allocate(n);
+        return GarbageCollector::Instance()->Allocate(n, line, file);
     }
 
-    void operator delete(void *data)
+    static void operator delete(void *data)
     {
         GarbageCollector::Instance()->Deallocate(data);
     }
 
-    void operator delete[](void *data)
+    static void operator delete[](void *data)
     {
         GarbageCollector::Instance()->Deallocate(data);
     }
-    
-    SmartObject& operator =(const SmartObject &other)
+        /*
+    static void Destroy(void *data, int line, bool is_array)
     {
-
-    }
+        if (is_array)
+            operator delete[](data, line, 1);
+        else
+            operator delete(data, line, );
+    }*/
 
     virtual ~SmartObject() 
     {
         GarbageCollector::Instance()->RemoveStackObject(this);
     }
 };
-

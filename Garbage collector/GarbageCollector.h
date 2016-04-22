@@ -5,14 +5,17 @@ class SmartObject;
 
 struct GarbageCollectorInfo
 {
-    int adress, size;
+    int adress, size, line;
+    const char* file;
 };
 
 ostream& operator << (ostream &stream, GarbageCollectorInfo info)
 {
-    stream << "adress = " << info.adress << " size = " << info.size;
+    stream << "adress = " << info.adress << " size = " << info.size << endl;
+    stream << "line = " << info.line << " file = " << info.file;
     return stream;
 }
+
 
 class GarbageCollector
 {
@@ -25,6 +28,7 @@ private:
         GCI_SIZE = sizeof(gc_info);
 
     static char* memory_buffer;
+    ofstream* gc_log;
 
     static GarbageCollector *self;
     static const bad_alloc alloc_exception;
@@ -37,13 +41,25 @@ private:
     GarbageCollector() 
     {
         memory_buffer = (char*)malloc(MEMORY_BUFFER_SIZE);
+        gc_log = new ofstream("gc_log.txt");
     }
     
-    ~GarbageCollector()
+    void CheckMemoryLeaks()
     {
-        free(memory_buffer);
+        gc_info *info;
+
+        if (pointers.size() != 0)
+        {
+            *gc_log << "ATTENTION! Memory leaks was founded" << endl << endl;
+
+            for (auto& data : pointers)
+            {
+                info = (gc_info*)((char*)data - GCI_SIZE);
+                *gc_log << *info << endl << endl;
+            }
+        }
     }
-    
+
     void AddPointer(void* object)
     {
         pointers.push_back((SmartObject*)object);
@@ -66,19 +82,31 @@ public:
         if (self == nullptr)
         {
             self = new GarbageCollector();
+            atexit(DestroyInstance);
         }
         return self;
     }
 
-    void* Allocate(size_t n)
+    static void DestroyInstance()
+    {
+        if (self != nullptr)
+        {
+            delete self;
+            self = nullptr;
+        }
+    }
+
+    void* Allocate(size_t n, size_t line, const char* file)
     {
         char *data = memory_buffer + cur_position;
 
         gc_info *info = (gc_info*)data;
         info->adress = (int)data;
         info->size = n;
-        
-        LOG << "allocating : " << *info << endl;
+        info->line = line;
+        info->file = file;
+
+        *gc_log << "allocating : " << *info << endl;
 
         cur_position += n + GCI_SIZE;
         
@@ -92,21 +120,22 @@ public:
         char* ch_data = (char*)data - GCI_SIZE;
         gc_info *info = (gc_info*)ch_data;
         
-        LOG << "deallocating : " << *info << endl;
+        *gc_log << "deallocating " << *info << endl;
 
         RemovePointer(ch_data + GCI_SIZE);
 
         memset(ch_data, 0, GCI_SIZE + info->size);
     }
    
-    void AddStackObject(void *data)
+    bool AddStackObject(void *data)
     {
         int adress = (int)data, offset = adress - (int)memory_buffer;
         if (offset >= 0 && offset * 4 < MEMORY_BUFFER_SIZE)
-            return;//heap object
+            return false;//heap object
         
-        LOG << "AddStackObject" << endl;
+        *gc_log << "AddStackObject" << endl;
         AddPointer(data);
+        return true;
     }
 
     void RemoveStackObject(const void *data)
@@ -115,7 +144,7 @@ public:
         if (offset >= 0 && offset * 4 < MEMORY_BUFFER_SIZE)
             return;//heap object
 
-        LOG << "RemoveStackObject" << endl;
+        *gc_log << "RemoveStackObject" << endl;
         RemovePointer(data);
     }
 
@@ -123,8 +152,16 @@ public:
     {
         return pointers;
     }
-};
 
+    ~GarbageCollector()
+    {
+        CheckMemoryLeaks();
+        free(memory_buffer);
+        gc_log->flush();
+        gc_log->close();
+        delete gc_log;
+    }
+};
 GarbageCollector* GarbageCollector::self = nullptr;
 const bad_alloc GarbageCollector::alloc_exception = bad_alloc();
 char* GarbageCollector::memory_buffer = nullptr;
