@@ -1,0 +1,24 @@
+AddStackObject
+AddStackObject
+RemoveStackObject
+RemoveStackObject
+allocating : adress = 8729476 size = 16
+line = 51 file = 
+allocating : adress = 8729512 size = 12
+line = 52 file = 
+deallocating adress = 8729476 size = 16
+line = 51 file = 
+deallocating adress = 8729512 size = 12
+line = 52 file = 
+allocating : adress = 8729544 size = 16
+line = 57 file = 
+
+
+ATTENTION! Memory leaks was founded
+
+adress = 8729544 size = 16
+line = 57 file = 
+
+is stack object 0
+deallocating adress = 8729544 size = 16
+line = 57 file = 
