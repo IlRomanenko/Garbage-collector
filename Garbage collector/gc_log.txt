@@ -2,23 +2,143 @@ AddStackObject
 AddStackObject
 RemoveStackObject
 RemoveStackObject
-allocating : adress = 8729476 size = 16
-line = 51 file = 
-allocating : adress = 8729512 size = 12
-line = 52 file = 
-deallocating adress = 8729476 size = 16
-line = 51 file = 
-deallocating adress = 8729512 size = 12
-line = 52 file = 
-allocating : adress = 8729544 size = 16
+AddStackObject
+AddStackObject
+allocating : adress = 6829392 size = 16
 line = 57 file = 
+total size = 40
+
+allocating : adress = 6829432 size = 12
+line = 59 file = 
+total size = 36
+
+deallocating adress = 6829392 size = 16
+line = 57 file = 
+total size = 40
+
+deallocating adress = 6829432 size = 12
+line = 59 file = 
+total size = 36
+
+allocating : adress = 6829392 size = 124
+line = 64 file = 
+total size = 148
+
+RemoveStackObject
+RemoveStackObject
+allocating : adress = 6829540 size = 12
+line = 78 file = 
+total size = 36
+
+
+Garbage collecting has began
+deallocating adress = 6829392 size = 124
+line = 64 file = 
+total size = 148
+
+deallocating adress = 6829540 size = 12
+line = 78 file = 
+total size = 36
+
+
+All garbage has destroyed
+allocating : adress = 6829392 size = 12
+line = 78 file = 
+total size = 36
+
+allocating : adress = 6829428 size = 12
+line = 78 file = 
+total size = 36
+
+allocating : adress = 6829464 size = 12
+line = 78 file = 
+total size = 36
+
+allocating : adress = 6829500 size = 12
+line = 78 file = 
+total size = 36
+
+allocating : adress = 6829536 size = 12
+line = 78 file = 
+total size = 36
+
+
+Garbage collecting has began
+deallocating adress = 6829392 size = 12
+line = 78 file = 
+total size = 36
+
+deallocating adress = 6829428 size = 12
+line = 78 file = 
+total size = 36
+
+deallocating adress = 6829464 size = 12
+line = 78 file = 
+total size = 36
+
+deallocating adress = 6829500 size = 12
+line = 78 file = 
+total size = 36
+
+deallocating adress = 6829536 size = 12
+line = 78 file = 
+total size = 36
+
+
+All garbage has destroyed
+allocating : adress = 6829392 size = 12
+line = 78 file = 
+total size = 36
+
+allocating : adress = 6829428 size = 12
+line = 78 file = 
+total size = 36
+
+allocating : adress = 6829464 size = 12
+line = 78 file = 
+total size = 36
+
+allocating : adress = 6829500 size = 12
+line = 78 file = 
+total size = 36
+
 
 
 ATTENTION! Memory leaks was founded
 
-adress = 8729544 size = 16
-line = 57 file = 
+adress = 6829392 size = 12
+line = 78 file = 
+total size = 36
 
-is stack object 0
-deallocating adress = 8729544 size = 16
-line = 57 file = 
+
+adress = 6829428 size = 12
+line = 78 file = 
+total size = 36
+
+
+adress = 6829464 size = 12
+line = 78 file = 
+total size = 36
+
+
+adress = 6829500 size = 12
+line = 78 file = 
+total size = 36
+
+
+deallocating adress = 6829392 size = 12
+line = 78 file = 
+total size = 36
+
+deallocating adress = 6829428 size = 12
+line = 78 file = 
+total size = 36
+
+deallocating adress = 6829464 size = 12
+line = 78 file = 
+total size = 36
+
+deallocating adress = 6829500 size = 12
+line = 78 file = 
+total size = 36
+
