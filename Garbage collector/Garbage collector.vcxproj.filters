@@ -33,7 +33,4 @@
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="gc_log.txt" />
-  </ItemGroup>
 </Project>

@@ -6,7 +6,7 @@ class SmartObject;
 
 struct GarbageCollectorInfo
 {
-    int adress, validation_empty_field; //a small trick
+    int validation_empty_field, adress; //a small trick
     int size, line;
     bool array;
     const char* file;
@@ -20,13 +20,14 @@ class GarbageCollector
 private:
 
     const int
-        MEMORY_BUFFER_SIZE = 200,
+        MEMORY_BUFFER_SIZE = 500,
         GCI_SIZE = sizeof(gc_info);
 
-    static char* memory_buffer;
     static GarbageCollector *self;
     static const bad_alloc alloc_exception;
+    static string file_name;
 
+    char* memory_buffer;
     ofstream* gc_log;
     vector<SmartObject*> pointers;
     set<pair<int, int> > size_adress_free_memory, boundaries_occupied_memory;
@@ -89,6 +90,18 @@ public:
             delete self;
             self = nullptr;
         }
+    }
+
+    static void SetGCLogFile(string filename)
+    {
+        file_name = filename;
+    }
+
+    static void ForciblyCollectGarbage()
+    {
+        if (self == nullptr)
+            return;
+        self->CollectGarbage();
     }
 
     void* Allocate(size_t n, size_t line, const char* file, bool is_array);

@@ -14,7 +14,7 @@ using gc_info = GarbageCollectorInfo;
 
 GarbageCollector* GarbageCollector::self = nullptr;
 const bad_alloc GarbageCollector::alloc_exception = bad_alloc();
-char* GarbageCollector::memory_buffer = nullptr;
+string GarbageCollector::file_name = "gc_info.txt";
 
 ostream& operator << (ostream &stream, GarbageCollectorInfo info)
 {
@@ -30,7 +30,7 @@ GarbageCollector::GarbageCollector()
 {
     memory_buffer = new char[MEMORY_BUFFER_SIZE];
     memset(memory_buffer, 0, MEMORY_BUFFER_SIZE);
-    gc_log = new ofstream("gc_log.txt");
+    gc_log = new ofstream(file_name);
 
     boundaries_occupied_memory.insert(make_pair(-1, -1));
     boundaries_occupied_memory.insert(make_pair(MEMORY_BUFFER_SIZE, MEMORY_BUFFER_SIZE));
@@ -54,6 +54,10 @@ GarbageCollector::~GarbageCollector()
     gc_log->flush();
     gc_log->close();
     delete gc_log;
+    pointers.clear();
+    size_adress_free_memory.clear();
+    boundaries_occupied_memory.clear();
+    memory_buffer = nullptr;
 }
 
 
@@ -62,8 +66,8 @@ void* GarbageCollector::get_begin_data(const void *offset_data)
 {
     char *res = (char*)offset_data - GCI_SIZE;
     gc_info* validation = (gc_info*)res;
-    if (validation->validation_empty_field != 0)
-        res -= sizeof(int);
+    if (validation->validation_empty_field != 0)    //a smal trick with checking arrays
+        res -= sizeof(size_t);
     return res;
 }
 
@@ -105,7 +109,10 @@ void GarbageCollector::remove_free_chunk(int begin_pos, int end_pos)
 {
     auto it = size_adress_free_memory.lower_bound(make_pair(end_pos - begin_pos + 1, begin_pos));
     if (it == size_adress_free_memory.end())
+    {
+        cout << "aaaa" << endl;
         assert("Can't find block");
+    }
     size_adress_free_memory.erase(it);
 }
 
@@ -149,12 +156,25 @@ void GarbageCollector::CheckMemoryLeaks()
     size_t offset;
     vector<pair<SmartObject*, bool> > need_erased;
 
+    bool is_all_stack_objects = true;
+    for (size_t i = 0; i < pointers.size(); i++)
+        if (!pointers[i]->is_stack_object)
+        {
+            is_all_stack_objects = false;
+            break;
+        }
+
+    if (is_all_stack_objects)
+        return;
+
     if (pointers.size() != 0)
     {
         *gc_log << endl << endl << "ATTENTION! Memory leaks was founded" << endl << endl;
 
         for (size_t i = 0; i < pointers.size(); i++)
         {
+            if (pointers[i]->is_stack_object)
+                continue;
             info = get_GC_INFO(pointers[i]);
             offset = (info->array ? 1 : 0) * sizeof(size_t);
 
@@ -174,6 +194,7 @@ void GarbageCollector::CheckMemoryLeaks()
         else
             delete pair.first;
     }
+    pointers.clear(); //remove stack objects
 }
 
 

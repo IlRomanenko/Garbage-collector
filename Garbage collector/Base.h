@@ -16,17 +16,14 @@ using namespace std;
 
 
 
+#define LOG cerr
+
 #ifdef _DEBUG
+
+#include <vld.h> //Visual Leak Detector
 
 #define PARANOID //special for GC memory_buffer (see destructor)
 
-#ifndef LOG_DEF
-#define LOG cerr
-#define LOG_DEF
-#endif
-
 #else
-
-#define LOG 
 
 #endif
