@@ -6,9 +6,7 @@ class SmartObject;
 
 struct GarbageCollectorInfo
 {
-    int validation_empty_field, adress; //a small trick
-    int size, line;
-    bool array;
+    int adress, size, line;
     const char* file;
 };
 
@@ -29,7 +27,7 @@ private:
 
     char* memory_buffer;
     ofstream* gc_log;
-    vector<SmartObject*> pointers;
+    vector<SmartObject*> stack_pointers, heap_pointers, array_pointers;
     set<pair<int, int> > size_adress_free_memory, boundaries_occupied_memory;
 
     
@@ -66,9 +64,9 @@ private:
 
     void CheckMemoryLeaks();
 
-    void AddPointer(void* object);
+    void AddPointer(void* object, vector<SmartObject*> &pointers);
 
-    void RemovePointer(const void* object, bool is_array);
+    void RemovePointer(const void* object, gc_info* info, vector<SmartObject*> &pointers);
 
     
     
@@ -108,15 +106,9 @@ public:
 
     void Deallocate(void *data, bool is_array);
 
-    bool AddLinkSource(void *data);
+    void AddLinkSource(void *data);
 
     void RemoveLinkSource(const void *data);
-
-    vector<SmartObject*> GetPointers() const
-    {
-        return pointers;
-    }
-
 };
 
 

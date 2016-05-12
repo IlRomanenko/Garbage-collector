@@ -54,7 +54,9 @@ GarbageCollector::~GarbageCollector()
     gc_log->flush();
     gc_log->close();
     delete gc_log;
-    pointers.clear();
+    stack_pointers.clear();
+    heap_pointers.clear();
+    array_pointers.clear();
     size_adress_free_memory.clear();
     boundaries_occupied_memory.clear();
     memory_buffer = nullptr;
@@ -64,11 +66,7 @@ GarbageCollector::~GarbageCollector()
 
 void* GarbageCollector::get_begin_data(const void *offset_data)
 {
-    char *res = (char*)offset_data - GCI_SIZE;
-    gc_info* validation = (gc_info*)res;
-    if (validation->validation_empty_field != 0)    //a smal trick with checking arrays
-        res -= sizeof(size_t);
-    return res;
+    return (char*)offset_data - GCI_SIZE;
 }
 
 gc_info* GarbageCollector::get_GC_INFO(const void *offset_data)
@@ -152,37 +150,31 @@ void GarbageCollector::ReleaseChunk(int beg_position, int size)
 void GarbageCollector::CheckMemoryLeaks()
 {
     gc_info *info;
-    SmartObject* data;
     size_t offset;
     vector<pair<SmartObject*, bool> > need_erased;
 
-    bool is_all_stack_objects = true;
-    for (size_t i = 0; i < pointers.size(); i++)
-        if (!pointers[i]->is_stack_object)
-        {
-            is_all_stack_objects = false;
-            break;
-        }
+    bool is_all_stack_objects = (heap_pointers.empty() && array_pointers.empty());
 
     if (is_all_stack_objects)
         return;
 
-    if (pointers.size() != 0)
+    if (!is_all_stack_objects)
     {
         *gc_log << endl << endl << "ATTENTION! Memory leaks was founded" << endl << endl;
 
-        for (size_t i = 0; i < pointers.size(); i++)
+        for (auto pointer : heap_pointers)
         {
-            if (pointers[i]->is_stack_object)
-                continue;
-            info = get_GC_INFO(pointers[i]);
-            offset = (info->array ? 1 : 0) * sizeof(size_t);
-
-            data = (SmartObject*)(info->adress + GCI_SIZE + offset);
-
+            info = get_GC_INFO(pointer);
             *gc_log << *info << endl << endl;
-            need_erased.push_back(make_pair(data, info->array));
+            need_erased.push_back(make_pair(pointer, false));
         }
+        for (auto array_pointer : array_pointers)
+        {
+            info = get_GC_INFO((char*)array_pointer - sizeof(size_t));
+            *gc_log << *info << endl << endl;
+            need_erased.push_back(make_pair(array_pointer, true));
+        }
+
     }
     else
         *gc_log << endl << endl << "OK, no memory leaks was founded" << endl;
@@ -194,36 +186,30 @@ void GarbageCollector::CheckMemoryLeaks()
         else
             delete pair.first;
     }
-    pointers.clear(); //remove stack objects
+    stack_pointers.clear(); //remove stack objects
 }
 
 
 
-void GarbageCollector::AddPointer(void* object)
+void GarbageCollector::AddPointer(void* object, vector<SmartObject*> &pointers)
 {
     pointers.push_back((SmartObject*)object);
 }
 
-void GarbageCollector::RemovePointer(const void* object, bool is_array)
+//Using info = nullptr for stack objects
+void GarbageCollector::RemovePointer(const void* object, gc_info* info, vector<SmartObject*> &pointers)
 {
     bool is_ok = true;
-
-    char* object_begin = (char*)object + sizeof(size_t) * (is_array ? 1 : 0);
-
-    bool is_stack = ((SmartObject*)object_begin)->is_stack_object;
-
-    auto find_iterator = find(pointers.begin(), pointers.end(), (SmartObject*)object_begin);
+    
+    auto find_iterator = find(pointers.begin(), pointers.end(), (SmartObject*)object);
     if (find_iterator == pointers.end())
         throw exception("Delalocating of unregistered object");
     else
     {
         pointers.erase(find_iterator);
     }
-    if (!is_stack)
-    {
-        gc_info *info = get_GC_INFO(object);
+    if (info != nullptr)
         ReleaseChunk(info->adress - (int)memory_buffer, info->size + GCI_SIZE - 1);
-    }
 }
 
 
@@ -237,14 +223,13 @@ void* GarbageCollector::Allocate(size_t n, size_t line, const char* file, bool i
     info->size = n;
     info->line = line;
     info->file = file;
-    info->array = is_array;
-    info->validation_empty_field = 0;
 
     *gc_log << "allocating : " << *info << endl;
 
-    int offset = sizeof(size_t) * (is_array ? 1 : 0);
-
-    AddPointer(data + GCI_SIZE + offset);
+    if (is_array)
+        AddPointer(data + GCI_SIZE + sizeof(size_t), array_pointers);
+    else
+        AddPointer(data + GCI_SIZE, heap_pointers);
 
     char* cur_pointer = data + GCI_SIZE;
 
@@ -253,28 +238,29 @@ void* GarbageCollector::Allocate(size_t n, size_t line, const char* file, bool i
 
 void GarbageCollector::Deallocate(void *data, bool is_array)
 {
-    gc_info *info = get_GC_INFO(data);
+    char *data_begin = (char*)data;
+    gc_info *info = get_GC_INFO(data_begin);
 
     *gc_log << "deallocating " << *info << endl;
 
-    int offset = sizeof(size_t) * (is_array ? 1 : 0);
+    if (is_array)
+        RemovePointer(data_begin + sizeof(size_t), info, array_pointers);
+    else
+        RemovePointer(data, info, heap_pointers);
 
-    RemovePointer(data, is_array);
-
-    memset(get_begin_data(data), 0, GCI_SIZE + info->size);
+    memset(get_begin_data(data_begin), 0, GCI_SIZE + info->size);
 }
 
 
 
-bool GarbageCollector::AddLinkSource(void *data)
+void GarbageCollector::AddLinkSource(void *data)
 {
     int adress = (int)data, offset = adress - (int)memory_buffer;
     if (offset >= 0 && offset < MEMORY_BUFFER_SIZE)
-        return false;//heap object
+        return;//heap object
 
     *gc_log << "AddStackObject" << endl;
-    AddPointer(data);
-    return true;
+    AddPointer(data, stack_pointers);
 }
 
 void GarbageCollector::RemoveLinkSource(const void *data)
@@ -284,7 +270,7 @@ void GarbageCollector::RemoveLinkSource(const void *data)
         return;//heap object
 
     *gc_log << "RemoveStackObject" << endl;
-    RemovePointer(data, false);
+    RemovePointer(data, nullptr, stack_pointers);
 }
 
 
@@ -292,58 +278,53 @@ void GarbageCollector::RemoveLinkSource(const void *data)
 void GarbageCollector::CollectGarbage()
 {
     *gc_log << endl << "Garbage collecting has began" << endl;
-    auto pointers = GetPointers();
+    
     gc_info *info;
-    for (auto & pnt : pointers)
-    {
-        if (!pnt->is_stack_object)
-        {
-            info = get_GC_INFO(pnt);
-            if (info->array)
-            {
-                int array_size = *((int*)(info->adress + GCI_SIZE));
-                int elem_size = (info->size - sizeof(size_t)) / array_size;
-                char *mem = (char*)pnt;
-                for (int i = 0; i < array_size; i++)
-                {
-                    ((SmartObject*)(mem + elem_size * i))->has_checked = false;
-                }
-            }
-        }
+    for (auto& pnt : stack_pointers)
         pnt->has_checked = false;
-    }
-    for (auto & pnt : pointers)
+    for (auto& pnt : heap_pointers)
+        pnt->has_checked = false;
+    for (auto& pnt : array_pointers)
     {
-        if (pnt->is_stack_object && !pnt->has_checked)
+        info = get_GC_INFO((char*)pnt - sizeof(size_t));
+        int array_size = *((int*)(info->adress + GCI_SIZE));
+        int elem_size = (info->size - sizeof(size_t)) / array_size;
+        char *mem = (char*)pnt;
+        for (int i = 0; i < array_size; i++)
+        {
+            ((SmartObject*)(mem + elem_size * i))->has_checked = false;
+        }
+    }
+
+    for (auto& pnt : stack_pointers)
+    {
+        if (!pnt->has_checked)
             Dfs(pnt);
     }
     vector<pair<SmartObject*, bool> > need_erased;
-    for (int i = 0; i < (int)pointers.size(); i++)
+
+    for (auto& pnt : heap_pointers)
+        if (!pnt->has_checked)
+            need_erased.push_back(make_pair(pnt, false));
+    for (auto& pnt : array_pointers)
     {
-        if (!pointers[i]->has_checked)
+        info = get_GC_INFO((char*)pnt - sizeof(size_t));
+        int array_size = *((int*)(info->adress + GCI_SIZE));
+        int elem_size = (info->size - sizeof(size_t)) / array_size;
+        char *mem = (char*)pnt;
+        bool is_all_garbage = true;
+        for (int arr_it = 0; arr_it < array_size; arr_it++)
         {
-            info = get_GC_INFO(pointers[i]);
-            if (info->array)
+            if (((SmartObject*)(mem + elem_size * arr_it))->has_checked)
             {
-                int array_size = *((int*)(info->adress + GCI_SIZE));
-                int elem_size = (info->size - sizeof(size_t)) / array_size;
-                char *mem = (char*)pointers[i];
-                bool is_all_garbage = true;
-                for (int arr_it = 0; arr_it < array_size; arr_it++)
-                {
-                    if (((SmartObject*)(mem + elem_size * arr_it))->has_checked)
-                    {
-                        is_all_garbage = false;
-                        break;
-                    }
-                }
-                if (is_all_garbage)
-                    need_erased.push_back(make_pair(pointers[i], info->array));
+                is_all_garbage = false;
+                break;
             }
-            else
-                need_erased.push_back(make_pair(pointers[i], info->array));
         }
+        if (is_all_garbage)
+            need_erased.push_back(make_pair(pnt, true));
     }
+
     for (int i = 0; i < (int)need_erased.size(); i++)
     {
         if (need_erased[i].second)

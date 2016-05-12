@@ -167,6 +167,6 @@ int main()
     TestGC(ReachableObjects);
     TestGC(CircleTest);
     TestGC(ArrayTest);
-
+    system("pause");
     return 0;
 }

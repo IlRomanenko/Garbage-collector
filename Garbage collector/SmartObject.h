@@ -6,12 +6,12 @@
 class SmartObject
 {
 public:
-    bool is_stack_object, has_checked;
+    bool has_checked;
 public:
     SmartObject()
     {
         has_checked = false;
-        is_stack_object = GarbageCollector::Instance()->AddLinkSource(this);
+        GarbageCollector::Instance()->AddLinkSource(this);
     }
 
     virtual vector<SmartObject*> pointers() const = 0;
