@@ -2,16 +2,6 @@
 
 using gc_info = GarbageCollectorInfo;
 
-/*
-    What do you think about adding 4 empty bytes for non-arrays objects?
-    Hah, there is more intresting way. We can add 4 empty bytes in gc_info, so
-    when offsetted array pointer casts to gc_info there we can see
-    how 4 bytes, where array size was written, add to our structure and
-    validation_field become non-empty. Of course it depends on supposition,
-    that structure has direct order in memory.
-    That's intresting, IMHO.
-*/
-
 GarbageCollector* GarbageCollector::self = nullptr;
 const bad_alloc GarbageCollector::alloc_exception = bad_alloc();
 string GarbageCollector::file_name = "gc_info.txt";
