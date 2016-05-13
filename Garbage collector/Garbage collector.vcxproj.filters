@@ -26,10 +26,13 @@
     <ClInclude Include="Base.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="SmartObject.h">
+    <ClInclude Include="GarbageCollector.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="GarbageCollector.h">
+    <ClInclude Include="ISmartObject.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="SmartObject.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
   </ItemGroup>

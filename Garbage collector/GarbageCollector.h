@@ -2,7 +2,7 @@
 #include "Base.h"
 #include <cassert>
 
-class SmartObject;
+class ISmartObject;
 
 struct GarbageCollectorInfo
 {
@@ -18,7 +18,7 @@ class GarbageCollector
 private:
 
     const int
-        MEMORY_BUFFER_SIZE = 500,
+        MEMORY_BUFFER_SIZE = 600,
         GCI_SIZE = sizeof(gc_info);
 
     static GarbageCollector *self;
@@ -27,7 +27,7 @@ private:
 
     char* memory_buffer;
     ofstream* gc_log;
-    vector<SmartObject*> stack_pointers, heap_pointers, array_pointers;
+    vector<ISmartObject*> stack_pointers, heap_pointers, array_pointers;
     set<pair<int, int> > size_adress_free_memory, boundaries_occupied_memory;
 
     
@@ -48,6 +48,8 @@ private:
 
     void ReleaseChunk(int beg_position, int size);
 
+    void InitializeMemory(char* data, size_t n, size_t line, const char* file, bool is_array);
+
     //gc_info functions
 
     void* get_begin_data(const void *offset_data);
@@ -58,15 +60,15 @@ private:
 
     void CollectGarbage();
     
-    void Dfs(SmartObject* node);
+    void Dfs(ISmartObject* node);
 
     //others
 
     void CheckMemoryLeaks();
 
-    void AddPointer(void* object, vector<SmartObject*> &pointers);
+    void AddPointer(void* object, vector<ISmartObject*> &pointers);
 
-    void RemovePointer(const void* object, gc_info* info, vector<SmartObject*> &pointers);
+    void RemovePointer(const void* object, gc_info* info, vector<ISmartObject*> &pointers);
 
     
     
@@ -103,6 +105,8 @@ public:
     }
 
     void* Allocate(size_t n, size_t line, const char* file, bool is_array);
+    
+    void* NoexceptAllocate(size_t n, size_t line, const char* file, bool is_array) noexcept;
 
     void Deallocate(void *data, bool is_array);
 
@@ -114,8 +118,10 @@ public:
 
 #ifdef FullNew
 #define gc_new new(__LINE__, __FILE__)
+#define gc_new_noexcept new(__LINE__, __FILE__, nothrow)
 #else
 #define gc_new new(__LINE__, "")
+#define gc_new_noexcept new(__LINE__, "", nothrow)
 #endif
 
 #define gc_delete delete

@@ -1,4 +1,4 @@
-#include "SmartObject.h"
+#include "ISmartObject.h"
 
 using gc_info = GarbageCollectorInfo;
 
@@ -85,8 +85,7 @@ int GarbageCollector::get_free_block_position(int size)
         it = size_adress_free_memory.lower_bound(make_pair(size, INT_MIN));
         if (it == size_adress_free_memory.end())
         {
-            *gc_log << "Not enough memory" << endl;
-            throw alloc_exception;
+            return -1;
         }
     }
     auto res = *it;
@@ -100,7 +99,10 @@ int GarbageCollector::get_free_block_position(int size)
 
 char* GarbageCollector::get_memory(size_t size)
 {
-    return memory_buffer + get_free_block_position(size);
+    int res = get_free_block_position(size);
+    if (res == -1)
+        return nullptr;
+    return memory_buffer + res;
 }
 
 void GarbageCollector::remove_free_chunk(int begin_pos, int end_pos)
@@ -150,8 +152,7 @@ void GarbageCollector::ReleaseChunk(int beg_position, int size)
 void GarbageCollector::CheckMemoryLeaks()
 {
     gc_info *info;
-    size_t offset;
-    vector<pair<SmartObject*, bool> > need_erased;
+    vector<pair<ISmartObject*, bool> > need_erased;
 
     bool is_all_stack_objects = (heap_pointers.empty() && array_pointers.empty());
 
@@ -191,17 +192,15 @@ void GarbageCollector::CheckMemoryLeaks()
 
 
 
-void GarbageCollector::AddPointer(void* object, vector<SmartObject*> &pointers)
+void GarbageCollector::AddPointer(void* object, vector<ISmartObject*> &pointers)
 {
-    pointers.push_back((SmartObject*)object);
+    pointers.push_back((ISmartObject*)object);
 }
 
 //Using info = nullptr for stack objects
-void GarbageCollector::RemovePointer(const void* object, gc_info* info, vector<SmartObject*> &pointers)
+void GarbageCollector::RemovePointer(const void* object, gc_info* info, vector<ISmartObject*> &pointers)
 {
-    bool is_ok = true;
-    
-    auto find_iterator = find(pointers.begin(), pointers.end(), (SmartObject*)object);
+    auto find_iterator = find(pointers.begin(), pointers.end(), (ISmartObject*)object);
     if (find_iterator == pointers.end())
         throw exception("Delalocating of unregistered object");
     else
@@ -212,12 +211,8 @@ void GarbageCollector::RemovePointer(const void* object, gc_info* info, vector<S
         ReleaseChunk(info->adress - (int)memory_buffer, info->size + GCI_SIZE - 1);
 }
 
-
-
-void* GarbageCollector::Allocate(size_t n, size_t line, const char* file, bool is_array)
+void GarbageCollector::InitializeMemory(char* data, size_t n, size_t line, const char* file, bool is_array)
 {
-    char *data = get_memory(n + GCI_SIZE);
-
     gc_info *info = (gc_info*)data;
     info->adress = (int)data;
     info->size = n;
@@ -230,10 +225,30 @@ void* GarbageCollector::Allocate(size_t n, size_t line, const char* file, bool i
         AddPointer(data + GCI_SIZE + sizeof(size_t), array_pointers);
     else
         AddPointer(data + GCI_SIZE, heap_pointers);
+}
 
-    char* cur_pointer = data + GCI_SIZE;
+void* GarbageCollector::NoexceptAllocate(size_t n, size_t line, const char* file, bool is_array) noexcept
+{
+    char *data = get_memory(n + GCI_SIZE);
 
-    return cur_pointer;
+    if (data == nullptr)
+    {
+        *gc_log << endl << "Can't allocate. Not enough memory!" << endl << endl;
+        return data;
+    }
+    InitializeMemory(data, n, line, file, is_array);
+
+    return data + GCI_SIZE;
+}
+
+void* GarbageCollector::Allocate(size_t n, size_t line, const char* file, bool is_array)
+{
+    void *data = NoexceptAllocate(n, line, file, is_array);
+
+    if (data == nullptr)
+        throw alloc_exception;
+
+    return data;
 }
 
 void GarbageCollector::Deallocate(void *data, bool is_array)
@@ -292,7 +307,7 @@ void GarbageCollector::CollectGarbage()
         char *mem = (char*)pnt;
         for (int i = 0; i < array_size; i++)
         {
-            ((SmartObject*)(mem + elem_size * i))->has_checked = false;
+            ((ISmartObject*)(mem + elem_size * i))->has_checked = false;
         }
     }
 
@@ -301,7 +316,7 @@ void GarbageCollector::CollectGarbage()
         if (!pnt->has_checked)
             Dfs(pnt);
     }
-    vector<pair<SmartObject*, bool> > need_erased;
+    vector<pair<ISmartObject*, bool> > need_erased;
 
     for (auto& pnt : heap_pointers)
         if (!pnt->has_checked)
@@ -315,7 +330,7 @@ void GarbageCollector::CollectGarbage()
         bool is_all_garbage = true;
         for (int arr_it = 0; arr_it < array_size; arr_it++)
         {
-            if (((SmartObject*)(mem + elem_size * arr_it))->has_checked)
+            if (((ISmartObject*)(mem + elem_size * arr_it))->has_checked)
             {
                 is_all_garbage = false;
                 break;
@@ -335,10 +350,15 @@ void GarbageCollector::CollectGarbage()
     *gc_log << endl << "All garbage has destroyed" << endl;
 }
 
-void GarbageCollector::Dfs(SmartObject* node)
+void GarbageCollector::Dfs(ISmartObject* node)
 {
     node->has_checked = true;
     for (auto& pnt : node->pointers())
+    {
+        if (!pnt->has_checked)
+            Dfs(pnt);
+    }
+    for (auto& pnt : node->rev_pointers_links())
     {
         if (!pnt->has_checked)
             Dfs(pnt);

@@ -1,53 +1,65 @@
 #pragma once
-#include "Base.h"
-#include "GarbageCollector.h"
+#include "ISmartObject.h"
 
-
-class SmartObject
+class SmartObject : public ISmartObject
 {
+    vector<ISmartObject*> pntrs, rev_pntrs;
+
+    void Add_Rev_Link(ISmartObject* object)
+    {
+        rev_pntrs.push_back(object);
+    }
+
+    void Remove_Rev_Link(ISmartObject* object)
+    {
+        auto it = find(rev_pntrs.begin(), rev_pntrs.end(), object);
+        if (it != rev_pntrs.end())
+            rev_pntrs.erase(it);
+    }
+
 public:
-    bool has_checked;
-public:
-    SmartObject()
+    SmartObject() { }
+
+    void AddLink(SmartObject* object)
     {
-        has_checked = false;
-        GarbageCollector::Instance()->AddLinkSource(this);
+        pntrs.push_back(object);
+        object->Add_Rev_Link(this);
     }
 
-    virtual vector<SmartObject*> pointers() const = 0;
-
-    static void* operator new(size_t n, size_t line, const char* file) 
+    void RemoveLink(SmartObject* object)
     {
-        return GarbageCollector::Instance()->Allocate(n, line, file, false);
+        auto it = find(pntrs.begin(), pntrs.end(), object);
+        if (it != pntrs.end())
+            pntrs.erase(it);
+        object->Remove_Rev_Link(this);
     }
 
-    static void operator delete(void *data)
+    virtual vector<ISmartObject*> pointers() const override
     {
-        GarbageCollector::Instance()->Deallocate(data, false);
-    }
-    
-    static void* operator new[](size_t n, size_t line, const char* file)
-    {
-        return GarbageCollector::Instance()->Allocate(n, line, file, true);
+        return pntrs;
     }
 
-    static void operator delete[](void *data)
+    virtual vector<ISmartObject*> rev_pointers_links() const override
     {
-        GarbageCollector::Instance()->Deallocate(data, true);
+        return rev_pntrs;
     }
 
-    static void operator delete (void *data, size_t line, const char* file)
-    {
-        GarbageCollector::Instance()->Deallocate(data, false);
-    }
-
-    static void operator delete[] (void *data, size_t line, const char* file)
-    {
-        GarbageCollector::Instance()->Deallocate(data, true);
-    }
 
     virtual ~SmartObject()
     {
-        GarbageCollector::Instance()->RemoveLinkSource(this);
+        cout << "~SmartObject" << endl;
+        SmartObject *obj;
+        for (auto& pnt : pntrs)
+        {
+            obj = (SmartObject*)pnt;
+            obj->Remove_Rev_Link(this);
+        }
+        vector<ISmartObject*> t_pntrs;
+        swap(t_pntrs, rev_pntrs);
+        for (auto& pnt : t_pntrs)
+        {
+            obj = (SmartObject*)pnt;
+            obj->RemoveLink(this);
+        }
     }
 };

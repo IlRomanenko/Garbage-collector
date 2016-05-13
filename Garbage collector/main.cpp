@@ -6,8 +6,6 @@
 class A : public SmartObject
 {
     int x;
-protected:
-    vector<SmartObject*> pntrs;
 public:
     A() : x(5)
     {
@@ -21,21 +19,6 @@ public:
     ~A()
     {
         LOG << "~A()" << endl;
-    }
-
-    void AddLink(A* object)
-    {
-        pntrs.push_back(object);
-    }
-
-    void RemoveLink(A* object)
-    {
-        pntrs.erase(find(pntrs.begin(), pntrs.end(), object));
-    }
-
-    virtual vector<SmartObject*> pointers() const override
-    {
-        return pntrs;
     }
 };
 
@@ -106,7 +89,7 @@ void SimpleTestGC()
 
     cout << "sizeof(B) = " << sizeof(B) << endl;
     cout << "sizeof(A) = " << sizeof(A) << endl;
-    cout << "sizeof(SmartObject) = " << sizeof(SmartObject) << endl;
+    cout << "sizeof(SmartObject) = " << sizeof(ISmartObject) << endl;
    
 }
 
@@ -154,11 +137,56 @@ void ArrayTest()
     {
         A second_holder(2);
         second_holder.AddLink(&((A*)mainNode->pointers()[1])[0]);           //get the first element 
-        A* t = gc_new HugeClass();                                          //from the second array of mainNode
-        gc_delete t;
+        A* t = gc_new_noexcept HugeClass();                                 //from the second array of mainNode
+        if (t != nullptr)
+            gc_delete t;
     }
 }
 
+class CInternal : public SmartObject {
+
+public:
+    CInternal() { }
+    void Print()
+    {
+        cout << "Hello, world! I'm CInternal" << endl;
+    }
+};
+
+class CExternal : public SmartObject {
+
+public:
+    
+    CExternal()
+    {
+        worker = gc_new CInternal();
+        AddLink(worker);
+    }
+
+    CInternal* GetWorkerInterface() const { return worker; }
+
+    void Print()
+    {
+        cout << "Hello, world2! I'm CExternal" << endl;
+    }
+
+private:
+
+    CInternal* worker;
+
+};
+
+void Egor_InternalObjects_Test()
+{
+    CInternal holder;
+    CExternal* ext = gc_new CExternal();
+    holder.AddLink(ext->GetWorkerInterface());
+
+    for (int i = 0; i < 50; i++)
+        gc_new HugeClass();
+    ((CInternal*)holder.pointers()[0])->Print();
+    ext->Print();
+}
 
 int main()
 {
@@ -167,6 +195,7 @@ int main()
     TestGC(ReachableObjects);
     TestGC(CircleTest);
     TestGC(ArrayTest);
+    TestGC(Egor_InternalObjects_Test);
     system("pause");
     return 0;
 }
