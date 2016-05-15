@@ -159,11 +159,10 @@ public:
     
     CExternal()
     {
-        worker = gc_new CInternal();
-        AddLink(worker);
+        AddLink(&worker);
     }
 
-    CInternal* GetWorkerInterface() const { return worker; }
+    CInternal* GetWorkerInterface() { return &worker; }
 
     void Print()
     {
@@ -172,7 +171,7 @@ public:
 
 private:
 
-    CInternal* worker;
+    CInternal worker;
 
 };
 

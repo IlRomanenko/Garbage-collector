@@ -283,12 +283,12 @@ void GarbageCollector::RemoveLinkSource(const void *data)
 void GarbageCollector::CollectGarbage()
 {
     *gc_log << endl << "Garbage collecting has began" << endl;
-    
+
     gc_info *info;
     for (auto& pnt : stack_pointers)
-        pnt->has_checked = false;
+        UncheckDfs(pnt);
     for (auto& pnt : heap_pointers)
-        pnt->has_checked = false;
+        UncheckDfs(pnt);
     for (auto& pnt : array_pointers)
     {
         info = get_GC_INFO((char*)pnt - sizeof(size_t));
@@ -296,9 +296,7 @@ void GarbageCollector::CollectGarbage()
         int elem_size = (info->size - sizeof(size_t)) / array_size;
         char *mem = (char*)pnt;
         for (int i = 0; i < array_size; i++)
-        {
-            ((ISmartObject*)(mem + elem_size * i))->has_checked = false;
-        }
+            UncheckDfs((ISmartObject*)(mem + elem_size * i));
     }
 
     for (auto& pnt : stack_pointers)
@@ -353,4 +351,17 @@ void GarbageCollector::Dfs(ISmartObject* node)
         if (!pnt->has_checked)
             Dfs(pnt);
     }
+}
+
+void GarbageCollector::UncheckDfs(ISmartObject * node)
+{
+    if (!node->has_checked)
+        return;
+    node->has_checked = false;
+    for (auto& pnt : node->pointers())
+        if (pnt->has_checked)
+            UncheckDfs(pnt);
+    for (auto& pnt : node->rev_pointers_links())
+        if (pnt->has_checked)
+            UncheckDfs(pnt);
 }

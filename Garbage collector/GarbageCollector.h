@@ -62,6 +62,8 @@ private:
     
     void Dfs(ISmartObject* node);
 
+    void UncheckDfs(ISmartObject* node);
+
     //others
 
     void CheckMemoryLeaks();
