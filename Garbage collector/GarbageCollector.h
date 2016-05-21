@@ -1,36 +1,22 @@
 #pragma once
 #include "Base.h"
-#include <cassert>
+#include "AllocatedMemoryChunk.h"
 
-class ISmartObject;
-
-struct GarbageCollectorInfo
-{
-    int adress, size, line;
-    const char* file;
-};
+struct GC_NEW_STRUCT { };
+extern  GC_NEW_STRUCT gc_new_struct;
 
 class GarbageCollector
 {
-
-    using gc_info = GarbageCollectorInfo;
-
+    
 private:
-
-    const int
-        MEMORY_BUFFER_SIZE = 600,
-        GCI_SIZE = sizeof(gc_info);
-
     static GarbageCollector *self;
     static const bad_alloc alloc_exception;
     static string file_name;
 
-    char* memory_buffer;
     ofstream* gc_log;
-    vector<ISmartObject*> stack_pointers, heap_pointers, array_pointers;
-    set<pair<int, int> > size_adress_free_memory, boundaries_occupied_memory;
+    vector<AllocatedMemoryChunk> allocatedMemory;
+    vector<ISmartObject*> stackObjects;
 
-    
 private:
 
     GarbageCollector();
@@ -38,23 +24,7 @@ private:
     ~GarbageCollector();
     
     
-    //memory allocation functions
-
-    void remove_free_chunk(int begin_pos, int end_pos);
-
-    int get_free_block_position(int size);
-
-    char* get_memory(size_t n);
-
-    void ReleaseChunk(int beg_position, int size);
-
-    void InitializeMemory(char* data, size_t n, size_t line, const char* file, bool is_array);
-
-    //gc_info functions
-
-    void* get_begin_data(const void *offset_data);
-
-    gc_info* get_GC_INFO(const void *offset_data);
+    void InitializeMemory(void* data, size_t n);
 
     //collecting garbage
 
@@ -68,12 +38,6 @@ private:
 
     void CheckMemoryLeaks();
 
-    void AddPointer(void* object, vector<ISmartObject*> &pointers);
-
-    void RemovePointer(const void* object, gc_info* info, vector<ISmartObject*> &pointers);
-
-    
-    
 public:
     static GarbageCollector* Instance()
     {
@@ -106,24 +70,19 @@ public:
         self->CollectGarbage();
     }
 
-    void* Allocate(size_t n, size_t line, const char* file, bool is_array);
+    void* Allocate(size_t n);
     
-    void* NoexceptAllocate(size_t n, size_t line, const char* file, bool is_array) noexcept;
+    void* NoexceptAllocate(size_t n) noexcept;
 
-    void Deallocate(void *data, bool is_array);
+    void Deallocate(void *data);
 
-    void AddLinkSource(void *data);
+    void AddLinkSource(ISmartObject *data);
 
-    void RemoveLinkSource(const void *data);
+    void RemoveLinkSource(const ISmartObject *data);
 };
 
 
-#ifdef FullNew
-#define gc_new new(__LINE__, __FILE__)
-#define gc_new_noexcept new(__LINE__, __FILE__, nothrow)
-#else
-#define gc_new new(__LINE__, "")
-#define gc_new_noexcept new(__LINE__, "", nothrow)
-#endif
+#define gc_new new(gc_new_struct)
+#define gc_new_noexcept new(gc_new_struct, nothrow)
 
 #define gc_delete delete

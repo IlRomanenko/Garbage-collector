@@ -16,7 +16,7 @@ public:
         LOG << "A(int _x)" << endl;
     }
 
-    ~A()
+    virtual ~A()
     {
         LOG << "~A()" << endl;
     }
@@ -41,7 +41,7 @@ public:
         cout << str << endl;
     }
 
-    ~B()
+    virtual ~B()
     {
         LOG << "~B() : str = " << str << endl;
     }
@@ -74,17 +74,17 @@ void SimpleTestGC()
     {
         A a, b(2);
     }
-
+    
     A t[2];
     
-    A *a = gc_new A[1];
+    A *a = gc_new A[2];
 
     A *c = gc_new A();
     gc_delete[] a;
     gc_delete c;
 
 
-    A *b = gc_new B[3]; //memory leak here
+    B *b = gc_new B[3]; //memory leak here
     //gc_delete[] b;
 
     cout << "sizeof(B) = " << sizeof(B) << endl;
@@ -187,6 +187,45 @@ void Egor_InternalObjects_Test()
     ext->Print();
 }
 
+
+class ExtA : virtual public SmartObject
+{
+public:
+    virtual void Print() = 0;
+};
+
+class CMyClass
+{
+    int _x;
+public:
+    CMyClass() : _x(-1) { } 
+};
+
+
+
+class ExtB : public CMyClass, public ExtA
+{
+public:
+    ExtB() { }
+    void Print() override
+    {
+        cout << "ExtB" << endl;
+    }
+    virtual void Print2()
+    {
+        cout << "ExtB2" << endl;
+    }
+};
+
+void ExtendedObjectTest()
+{
+    ExtB* t = gc_new ExtB();
+    ExtA *d = (ExtA*)t;
+    d->Print();
+    t->Print2();
+    gc_delete dynamic_cast<ISmartObject*>(t);
+}
+
 int main()
 {
     TestGC(SimpleTestGC);
@@ -195,6 +234,8 @@ int main()
     TestGC(CircleTest);
     TestGC(ArrayTest);
     TestGC(Egor_InternalObjects_Test);
+
+    TestGC(ExtendedObjectTest);
     system("pause");
     return 0;
 }

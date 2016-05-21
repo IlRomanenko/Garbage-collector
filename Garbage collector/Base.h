@@ -11,9 +11,16 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <queue>
+#include <cassert>
 
 using namespace std;
 
+
+using memtype = int64_t;
+
+class ISmartObject;
+class AllocatedMemoryChunk;
 
 
 #define LOG cerr
@@ -22,7 +29,6 @@ using namespace std;
 
 #include <vld.h> //Visual Leak Detector
 
-#define PARANOID //special for GC memory_buffer (see destructor)
 
 #else
 

@@ -16,65 +16,60 @@ public:
 
     virtual vector<ISmartObject*> pointers() const = 0;
     
-    virtual vector<ISmartObject*> rev_pointers_links() const = 0;
-
-
-    static void* operator new(size_t n, size_t line, const char* file) 
+    static void* operator new(size_t n, const GC_NEW_STRUCT&)
     {
-        return GarbageCollector::Instance()->Allocate(n, line, file, false);
+        return GarbageCollector::Instance()->Allocate(n);
     }
 
     static void operator delete(void *data)
     {
-        GarbageCollector::Instance()->Deallocate(data, false);
+        GarbageCollector::Instance()->Deallocate(data);
     }
-    
 
-    static void* operator new[](size_t n, size_t line, const char* file)
+    static void operator delete(void *data, const GC_NEW_STRUCT&)
     {
-        return GarbageCollector::Instance()->Allocate(n, line, file, true);
+        GarbageCollector::Instance()->Deallocate(data);
+    }
+
+
+    static void* operator new[](size_t n, const GC_NEW_STRUCT&)
+    {
+        return GarbageCollector::Instance()->Allocate(n);
     }
 
     static void operator delete[](void *data)
     {
-        GarbageCollector::Instance()->Deallocate(data, true);
-    }
-
-
-    static void operator delete (void *data, size_t , const char* )
-    {
-        GarbageCollector::Instance()->Deallocate(data, false);
-    }
-
-    static void operator delete[] (void *data, size_t , const char* )
-    {
-        GarbageCollector::Instance()->Deallocate(data, true);
-    }
-
-
-    static void* operator new(size_t n, size_t line, const char* file, const nothrow_t&) noexcept
-    {
-        return GarbageCollector::Instance()->NoexceptAllocate(n, line, file, false);
+        GarbageCollector::Instance()->Deallocate(data);
     }
     
-    static void operator delete(void *data ,size_t, const char* , const nothrow_t&) noexcept
+    static void operator delete[](void *data, const GC_NEW_STRUCT&)
+    {
+        GarbageCollector::Instance()->Deallocate(data);
+    }
+
+    static void* operator new(size_t n, const GC_NEW_STRUCT&, const nothrow_t&) noexcept
+    {
+        return GarbageCollector::Instance()->NoexceptAllocate(n);
+    }
+    
+    static void operator delete(void *data , const GC_NEW_STRUCT&, const nothrow_t&) noexcept
     {
         if (data == nullptr)
             return;
-        GarbageCollector::Instance()->Deallocate(data, false);
+        GarbageCollector::Instance()->Deallocate(data);
     }
 
 
-    static void* operator new[](size_t n, size_t line, const char* file, const nothrow_t&) noexcept
+    static void* operator new[](size_t n, const GC_NEW_STRUCT&, const nothrow_t&) noexcept
     {
-        return GarbageCollector::Instance()->NoexceptAllocate(n, line, file, true);
+        return GarbageCollector::Instance()->NoexceptAllocate(n);
     }
 
-    static void operator delete[](void *data, size_t, const char*, const nothrow_t&) noexcept
+    static void operator delete[](void *data, const GC_NEW_STRUCT&, const nothrow_t&) noexcept
     {
         if (data == nullptr)
             return;
-        GarbageCollector::Instance()->Deallocate(data, true);
+        GarbageCollector::Instance()->Deallocate(data);
     }
 
     virtual ~ISmartObject()

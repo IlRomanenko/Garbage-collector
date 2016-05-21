@@ -21,6 +21,9 @@
     <ClCompile Include="GarbageCollector.cpp">
       <Filter>Файлы исходного кода</Filter>
     </ClCompile>
+    <ClCompile Include="AllocatedMemoryChunk.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Base.h">
@@ -33,6 +36,9 @@
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
     <ClInclude Include="SmartObject.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="AllocatedMemoryChunk.h">
       <Filter>Заголовочные файлы</Filter>
     </ClInclude>
   </ItemGroup>
