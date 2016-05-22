@@ -25,17 +25,24 @@ vector<ISmartObject*>& AllocatedMemoryChunk::SmartObjects()
     return smartObjects;
 }
 
-void AllocatedMemoryChunk::Print()
+void AllocatedMemoryChunk::Print() const
 {
-    cout << "Address = " << addressof(mem_ptr) << " Size = " << length << endl;
-    cout << "Count = " << smartObjects.size() << endl;
+    cerr << "Address = " << mem_ptr << " Size = " << length << endl;
+    cerr << "Count = " << smartObjects.size() << endl;
+    for (auto& pnt : smartObjects)
+        cout << static_cast<const void* const>(pnt) << ' ';
+    cout << endl;
 }
 
 void AllocatedMemoryChunk::Destroy()
 {
-    vector<ISmartObject*> tv = smartObjects;
-    for (auto& pnt : tv)
-        pnt->~ISmartObject();
+    while (!smartObjects.empty())
+        smartObjects.front()->~ISmartObject();
     free(mem_ptr);
     mem_ptr = nullptr;
+}
+
+bool& AllocatedMemoryChunk::IsReachable()
+{
+    return is_reachable;
 }

@@ -28,15 +28,16 @@ void GarbageCollector::CheckMemoryLeaks()
 
     for (auto& chunk : allocatedMemory)
     {
-        chunk.Print();
-        chunk.Destroy();
+        chunk->Print();
+        chunk->Destroy();
+        delete chunk;
     }
     allocatedMemory.clear();
 }
 
 void GarbageCollector::InitializeMemory(void* data, size_t n)
 {
-    allocatedMemory.push_back(AllocatedMemoryChunk(data, n));
+    allocatedMemory.push_back(new AllocatedMemoryChunk(data, n));
 }
 
 void* GarbageCollector::NoexceptAllocate(size_t n) noexcept
@@ -70,50 +71,44 @@ void GarbageCollector::Deallocate(void *data)
     for (size_t i = 0; i < allocatedMemory.size(); i++)
     {
         auto& chunk = allocatedMemory[i];
-        if (chunk.IsInner(data) && chunk.SmartObjects().size() == 0)
+        if (chunk->IsInner(data) && chunk->SmartObjects().size() == 0)
         {
-            chunk.Print();
-            chunk.Destroy();
+            chunk->Print();
+            chunk->Destroy();
+            delete chunk;
             swap(allocatedMemory[i], allocatedMemory.back());
             allocatedMemory.pop_back();
             return;
         }
     }
-    *gc_log << "Error! Element was'n find in Deallocate" << endl;
+    *gc_log << "ATTENTION! Element was'n find in Deallocate" << endl;
 }
 
 
 
-void GarbageCollector::AddLinkSource(ISmartObject *data)
+AllocatedMemoryChunk* GarbageCollector::AddLinkSource(ISmartObject *data)
 {
     *gc_log << "AddLinkSource" << endl;
     for (auto& chunk : allocatedMemory)
-        if (chunk.IsInner(data))
+        if (chunk->IsInner(data))
         {
             *gc_log << "Added heap object" << endl;
-            chunk.AddObject(data);
-            return;
+            chunk->AddObject(data);
+            return chunk;
         }
     *gc_log << "Added stack object" << endl;
     stackObjects.push_back(data);
+    return nullptr;
 }
 
 void GarbageCollector::RemoveLinkSource(const ISmartObject *data)
 {
-    *gc_log << "RemoveLinkSource" << endl;
-    for (auto& chunk : allocatedMemory)
-        if (chunk.IsInner(data))
-        {
-            *gc_log << "Removed heap Link" << endl;
-            chunk.RemoveObject(data);
-            return;
-        }
     *gc_log << "Removed stack Link" << endl;
     auto it = find(stackObjects.begin(), stackObjects.end(), data);
     if (it != stackObjects.end())
         stackObjects.erase(it);
     else
-        *gc_log << "Something strange. Can't remove element by stackObject" << endl;
+        *gc_log << "ATTENTION! Can't remove element by stackObject" << endl;
 }
 
 
@@ -125,8 +120,11 @@ void GarbageCollector::CollectGarbage()
     for (auto& pnt : stackObjects)
         pnt->has_checked = false;
     for (auto& chunk : allocatedMemory)
-        for (auto& pnt : chunk.SmartObjects())
+    {
+        chunk->IsReachable() = false;
+        for (auto& pnt : chunk->SmartObjects())
             pnt->has_checked = false;
+    }
 
     for (auto& pnt : stackObjects)
     {
@@ -139,21 +137,15 @@ void GarbageCollector::CollectGarbage()
     for (size_t i = 0; i < allocatedMemory.size(); i++)
     {
         auto& chunk = allocatedMemory[i];
-        need_delete = true;
-        for (auto& pnt : chunk.SmartObjects())
-            if (pnt->has_checked)
-            {
-                need_delete = false;
-                break;
-            }
-        if (need_delete)
-        {
-            chunk.Print();
-            chunk.Destroy();
-            swap(allocatedMemory[i], allocatedMemory.back());
-            allocatedMemory.pop_back();
-            i--;
-        }
+        if (chunk->IsReachable())
+            continue;
+
+        chunk->Print();
+        chunk->Destroy();
+        delete chunk;
+        swap(allocatedMemory[i], allocatedMemory.back());
+        allocatedMemory.pop_back();
+        i--;
     }
 
     *gc_log << endl << "All garbage has destroyed" << endl;
@@ -162,19 +154,22 @@ void GarbageCollector::CollectGarbage()
 void GarbageCollector::Dfs(ISmartObject* node)
 {
     node->has_checked = true;
+    if (node->chunk != nullptr)
+    {
+        node->chunk->IsReachable() = true;
+        for (auto& chunk_node : node->chunk->SmartObjects())
+        {
+            if (chunk_node->has_checked)
+                continue;
+            chunk_node->has_checked = true;
+            for (auto& pnt : chunk_node->pointers())
+                if (!pnt->has_checked)
+                    Dfs(pnt);
+        }
+    }
     for (auto& pnt : node->pointers())
     {
         if (!pnt->has_checked)
             Dfs(pnt);
     }
-}
-
-void GarbageCollector::UncheckDfs(ISmartObject * node)
-{
-    if (!node->has_checked)
-        return;
-    node->has_checked = false;
-    for (auto& pnt : node->pointers())
-        if (pnt->has_checked)
-            UncheckDfs(pnt);
 }

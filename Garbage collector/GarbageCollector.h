@@ -13,7 +13,7 @@ private:
     static string file_name;
 
     ofstream* gc_log;
-    vector<AllocatedMemoryChunk> allocatedMemory;
+    vector<AllocatedMemoryChunk*> allocatedMemory;
     vector<ISmartObject*> stackObjects;
 
 private:
@@ -22,18 +22,11 @@ private:
     
     ~GarbageCollector();
     
-    
     void InitializeMemory(void* data, size_t n);
-
-    //collecting garbage
 
     void CollectGarbage();
     
     void Dfs(ISmartObject* node);
-
-    void UncheckDfs(ISmartObject* node);
-
-    //others
 
     void CheckMemoryLeaks();
 
@@ -75,7 +68,7 @@ public:
 
     void Deallocate(void *data);
 
-    void AddLinkSource(ISmartObject *data);
+    AllocatedMemoryChunk* AddLinkSource(ISmartObject *data);
 
     void RemoveLinkSource(const ISmartObject *data);
 };

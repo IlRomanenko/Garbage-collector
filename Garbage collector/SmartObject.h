@@ -25,9 +25,5 @@ public:
         return pntrs;
     }
 
-
-    virtual ~SmartObject()
-    {
-        cout << "~SmartObject" << endl;
-    }
+    virtual ~SmartObject() { }
 };

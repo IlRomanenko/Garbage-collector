@@ -6,6 +6,7 @@ class AllocatedMemoryChunk
     void* mem_ptr;
     ptrdiff_t length;
     vector<ISmartObject*> smartObjects;
+    bool is_reachable;
 
 public:
 
@@ -22,9 +23,11 @@ public:
 
     vector<ISmartObject*>& SmartObjects();
 
-    void Print();
+    void Print() const;
 
     void Destroy();
+
+    bool& IsReachable();
 
     ~AllocatedMemoryChunk() { }
 };

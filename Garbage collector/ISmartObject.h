@@ -6,11 +6,12 @@ class ISmartObject
 {
 public:
     bool has_checked;
+    AllocatedMemoryChunk* chunk;
 public:
     ISmartObject()
     {
         has_checked = false;
-        GarbageCollector::Instance()->AddLinkSource(this);
+        chunk = GarbageCollector::Instance()->AddLinkSource(this);
     }
 
     virtual vector<ISmartObject*> pointers() const = 0;
@@ -73,6 +74,12 @@ public:
 
     virtual ~ISmartObject()
     {
-        GarbageCollector::Instance()->RemoveLinkSource(this);
+        if (chunk != nullptr)
+        {
+            cerr << "~ISmartObject() with address " << static_cast<const void* const>(this) << endl;
+            chunk->RemoveObject(this);
+        }
+        else
+            GarbageCollector::Instance()->RemoveLinkSource(this);
     }
 };

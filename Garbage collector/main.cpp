@@ -187,6 +187,20 @@ void Egor_InternalObjects_Test()
     ext->Print();
 }
 
+void Egor_InternalObject_Test2()
+{
+    CInternal A;
+    CExternal* B = gc_new CExternal();
+    A.AddLink(B);
+    CInternal* C = B->GetWorkerInterface();
+    CInternal* D = gc_new CInternal();
+    C->AddLink(D);
+    GarbageCollector::ForciblyCollectGarbage();
+    A.Print();
+    B->Print();
+    C->Print();
+    D->Print();
+}
 
 class ExtA : virtual public SmartObject
 {
@@ -226,6 +240,7 @@ void ExtendedObjectTest()
     gc_delete dynamic_cast<ISmartObject*>(t);
 }
 
+
 int main()
 {
     TestGC(SimpleTestGC);
@@ -236,6 +251,7 @@ int main()
     TestGC(Egor_InternalObjects_Test);
 
     TestGC(ExtendedObjectTest);
+    TestGC(Egor_InternalObject_Test2);
     system("pause");
     return 0;
 }
