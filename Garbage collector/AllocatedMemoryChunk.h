@@ -1,5 +1,5 @@
 #pragma once
-#include "ISmartObject.h"
+#include "Base.h"
 
 class AllocatedMemoryChunk
 {

@@ -1,5 +1,4 @@
 #pragma once
-#include "Base.h"
 #include "AllocatedMemoryChunk.h"
 
 struct GC_NEW_STRUCT { };

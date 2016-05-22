@@ -1,4 +1,4 @@
-#include "AllocatedMemoryChunk.h"
+#include "ISmartObject.h"
 
 bool AllocatedMemoryChunk::IsInner(const void* ptr) const
 {
