@@ -17,8 +17,6 @@
 using namespace std;
 
 
-using memtype = int64_t;
-
 class ISmartObject;
 class AllocatedMemoryChunk;
 
@@ -28,7 +26,6 @@ class AllocatedMemoryChunk;
 #ifdef _DEBUG
 
 #include <vld.h> //Visual Leak Detector
-
 
 #else
 

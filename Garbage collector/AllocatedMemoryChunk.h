@@ -4,7 +4,7 @@
 class AllocatedMemoryChunk
 {
     void* mem_ptr;
-    memtype length;
+    ptrdiff_t length;
     vector<ISmartObject*> smartObjects;
 
 public:

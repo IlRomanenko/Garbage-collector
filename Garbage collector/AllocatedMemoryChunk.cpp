@@ -2,7 +2,7 @@
 
 bool AllocatedMemoryChunk::IsInner(const void* ptr) const
 {
-    memtype offset = static_cast<const char*>(ptr) - static_cast<const char*>(mem_ptr);
+    ptrdiff_t offset = static_cast<const char*>(ptr) - static_cast<const char*>(mem_ptr);
     return (offset >= 0 && offset < length);
 }
 
